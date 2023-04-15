@@ -1,3 +1,5 @@
+// Worked with Keerthana Pullela and Jamarri White
+// Kuira Edwards @02942519
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,14 +11,14 @@
 // 0 == empty cell; 1-9 is the filled in digit.
 int board[SIZE][SIZE] = {
     {1,0,0,0,0,0,0,0,0},
-    {0,2,0,0,0,0,0,0,0},
-    {0,0,3,0,0,0,0,0,0},
-    {0,0,0,4,0,0,0,0,0},
+    {0,4,0,0,0,0,0,0,0},
+    {0,0,3,0,0,0,15,0,0},
+    {0,0,0,8,0,0,0,0,0},
     {0,0,0,0,5,0,0,0,0},
-    {0,0,0,0,0,6,0,0,0},
+    {0,1,0,0,0,2,0,0,0},
     {0,0,0,0,0,0,7,0,0},
-    {0,0,0,0,0,0,0,8,0},
-    {0,0,0,0,0,0,0,0,9},
+    {0,0,0,2,0,0,0,8,0},
+    {0,0,3,0,0,0,0,0,9},
 };
 
 bool row_check[SIZE];
@@ -69,41 +71,40 @@ int main() {
     
     // 5. Print the results.
     printf("Results:\n");
-    bool all_rows_passed = true;
+    bool passed1 = true;
     printf("Rows:\n");
     for (int i = 0; i < SIZE; i++) {
         if (!row_check[i]) {
             printf("Row %i did not pass\n", i);
-            all_rows_passed = false;
+            passed1 = false;
         }
     }
-    if (all_rows_passed) {
+    if (passed1) {
         printf("All rows passed!\n");
     }
     
-    bool all_cols_passed = true;
+    bool passed2 = true;
     printf("Cols:\n");
     for (int i = 0; i < SIZE; i++) {
         if (!col_check[i]) {
             printf("Col %i did not pass\n", i);
-            all_cols_passed = false;
+            passed2 = false;
         }
     }
-    if (all_cols_passed) {
+    if (passed2) {
         printf("All cols passed!\n");
     }
     
-    bool all_boxes_passed = true;
+    bool passed3 = true;
     printf("Boxes:\n");
     for (int i = 0; i < SIZE; i++) {
         if (!box_check[i]) {
             printf("Box %i did not pass\n", i);
-            all_boxes_passed = false;
+            passed3 = false;
         }
     }
-    if (all_boxes_passed) {
+    if (passed3) {
         printf("All boxes passed!\n");
     }
     return 0;
 }
-

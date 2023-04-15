@@ -1,27 +1,22 @@
-// Parallel Matrix Arithmetic
-
-// Kuira Edwards @02942519
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <time.h>
+#define MAX 4
+typedef void* (*Operators)(void*);
 
-// Reference: https://stackoverflow.com/questions/33224832/matrix-multiplication-with-multiple-threads-in-c
+//Kuira Edwards @02942519
+//Worked with Jamarri White and Keerthana Pullela
 
-int* matA; 
-int* matB; 
+int matA[MAX][MAX]; 
+int matB[MAX][MAX]; 
+int matSumResult[MAX][MAX];
+int matDiffResult[MAX][MAX]; 
+int matProductResult[MAX][MAX]; 
 
-int* matSumResult;
-int* matDiffResult; 
-int* matProductResult; 
-
-int MAX;
-int turn0 = 0; turn1 = 0; turn2 = 0;
-
-void fillMatrix(int* matrix) {
-    for(int i = 0; i<MAX; i++) {
-        for(int j = 0; j<MAX; j++) {
+void fillMatrix(int matrix[MAX][MAX]) {
+    for(int i = 0; i < MAX; i++) {
+        for(int j = 0; j < MAX; j++) {
             matrix[i][j] = rand()%10+1;
         }
     }
@@ -30,10 +25,11 @@ void fillMatrix(int* matrix) {
 void printMatrix(int matrix[MAX][MAX]) {
     for(int i = 0; i<MAX; i++) {
         for(int j = 0; j<MAX; j++) {
-            printf("%5d", matrix[i][j]);
+            printf("%d\t", matrix[i][j]);
         }
         printf("\n");
     }
+    printf("\nchecking\n");
     printf("\n");
 }
 
@@ -41,41 +37,30 @@ void printMatrix(int matrix[MAX][MAX]) {
 // the cell of matSumResult at the coordinates to the sum of the
 // values at the coordinates of matA and matB.
 void* computeSum(void* args) { // pass in the number of the ith thread
-    int i, j;
-    int k = turn0++;
-    for(i = k; i < (k + 1); i++) {
-      for(j = 0; j < MAX; j++) {
-        *((int*)matSumResult + i*MAX + j) = *(matA + i*MAX + j) + *(matB + i*MAX + j);
-      }
-    }
-}
-
-// Fetches the appropriate coordinates from the argument, and sets
-// the cell of matSumResult at the coordinates to the inner product
-// of matA and matB.
-void* computeProduct(void* args) { // pass in the number of the ith thread
-    int i, j, m;
-    int k = turn2++;
-    for(i = k; i < (k + 1); i++) {
-      for(j = 0; j < MAX; j++) {
-        for(m = 0; m < MAX; m++) {
-          *((int*)matProductResult + i*MAX + j) += *(matA + i*MAX + m) * *(matB + m*MAX + j);
-        }
-      }
-    }
+    int *i = (int*) args; //Fetch appropriate coordinates
+    int row = (*i)/MAX;
+    int col = (*i)%MAX;
+    matSumResult[row][col] = matA[row][col] + matB[row][col];
 }
 
 // Fetches the appropriate coordinates from the argument, and sets
 // the cell of matSumResult at the coordinates to the difference of the
 // values at the coordinates of matA and matB.
 void* computeDiff(void* args) { // pass in the number of the ith thread
-    int i, j;
-    int k = turn1++;
-    for(i = k; i < (k + 1); i++) {
-      for(j = 0; j < MAX; j++) {
-        *((int*)matDiffResult + i*MAX + j) = *(matA + i*MAX + j) - *(matB + i*MAX + j);
-      }
-    }
+    int *i = (int*) args; //Fetch appropriate coordinates
+    int row = (*i)/MAX;
+    int col = (*i)%MAX;
+    matSumResult[row][col] = matA[row][col] - matB[row][col];
+}
+
+// Fetches the appropriate coordinates from the argument, and sets
+// the cell of matSumResult at the coordinates to the inner product
+// of matA and matB.
+void* computeProduct(void* args) { // pass in the number of the ith thread
+    int *i = (int*) args; //Fetch appropriate coordinates
+    int row = (*i)/MAX;
+    int col = (*i)%MAX;
+    matSumResult[row][col] = matA[row][col] * matB[row][col];
 }
 
 // Spawn a thread to fill each cell in each result matrix.
@@ -84,41 +69,49 @@ int main() {
     srand(time(0));  // Do Not Remove. Just ignore and continue below.
     
     // 0. Get the matrix size from the command line and assign it to MAX
-    printf("Choose the dimensions for your NxN matrix: ");
-    scanf("%d", &MAX);
-
-    // 1. Dynamically allocate matrices
-    matA = (int *)malloc(MAX * MAX * sizeof(int));
-    matB = (int *)malloc(MAX * MAX * sizeof(int));
-    matSumResult = (int *)malloc(MAX * MAX * sizeof(int));
-    matDiffResult = (int *)malloc(MAX * MAX * sizeof(int));
-    matProductResult = (int *)malloc(MAX * MAX * sizeof(int));
+    Operators operation[3];
+    // 1. Fill the matrices (matA and matB) with random values.
     
-    // 2. Fill the matrices (matA and matB) with random values.
-    // 3. Print the initial matrices.
+    // 2. Print the initial matrices.
     printf("Matrix A:\n");
+    fillMatrix(matA);
     printMatrix(matA);
     printf("Matrix B:\n");
+    fillMatrix(matB);
     printMatrix(matB);
     
-    // 4. Create pthread_t objects for our threads.
-    pthread_t threads[MAX];
+    // 3. Create pthread_t objects for our threads.
+    pthread_t objects[3][4*4];
+    // 4. Create a thread for each cell of each matrix operation.
+    operation[0] = &computeProduct;
+    operation[1] = &computeSum;
+    operation[2] = &computeDiff;
 
-    // 5. Create a thread for each cell of each matrix operation.
-    int i;
-    for(i=0; i < MAX; i++) {
-      int* arg;
-      pthread_create(&threads[i], NULL, computeSum, (void*)(arg));
-      pthread_create(&threads[i], NULL, computeDiff, (void*)(arg));
-      pthread_create(&threads[i], NULL, computeProduct, (void*)(arg));
+    for(int j = 0; j < 3; j++) {
+      for(int k = 0; k < MAX*MAX; k++) {
+        int *index = (int*)malloc(sizeof(int));
+        int *op_id = index;
+        *index = j;
+        pthread_create(&objects[*op_id][*index], NULL, operation[*op_id], (void*)index);
+      }
     }
-
-    // 6. Wait for all threads to finish.
-    for(i = 0l i < MAX; i++) {
-      pthread_joing(threads[i], NULL);
+    // You'll need to pass in the coordinates of the cell you want the thread
+    // to compute.
+    // 
+    // One way to do this is to malloc memory for the thread number i, populate the coordinates
+    // into that space, and pass that address to the thread. The thread will use that number to calcuate 
+    // its portion of the matrix. The thread will then have to free that space when it's done with what's in that memory.
+    printf("Done with 4\n");
+    // 5. Wait for all threads to finish.
+    for(int j = 0; j < 3; j++) {
+      printf("in J\n");
+      for(int k = 0; k < MAX*MAX; k++) {
+        printf("Joining\n");
+        pthread_join(objects[j][k], NULL);
+      }
     }
-
-    // 7. Print the results.
+    printf("Done with 5\n");
+    // 6. Print the results.
     printf("Results:\n");
     printf("Sum:\n");
     printMatrix(matSumResult);
